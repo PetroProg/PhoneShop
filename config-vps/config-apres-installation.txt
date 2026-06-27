@@ -1,0 +1,30 @@
+# Mise à jour du système
+sudo apt update && sudo apt upgrade -y
+
+# Installation et activation de Nginx
+sudo apt install -y nginx
+sudo systemctl enable --now nginx
+
+sudo ufw allow "Nginx Full"
+
+sudo apt install -y software-properties-common
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update
+
+sudo apt install -y php8.2-fpm php8.2-cli php8.2-mysql php8.2-curl \
+php8.2-xml php8.2-gd php8.2-zip php8.2-mbstring php8.2-intl
+
+# Désactivation de cgi.fix_pathinfo
+sudo sed -i 's/^\s*;*\s*cgi.fix_pathinfo\s*=.*/cgi.fix_pathinfo=0/' /etc/php/8.2/fpm/php.ini
+sudo systemctl restart php8.2-fpm
+
+# Création de l'arborescence
+sudo mkdir -p /var/www/mon-domaine.com/public
+
+# Attribution de la propriété à l'utilisateur web (www-data)
+sudo chown -R www-data:www-data /var/www/mon-domaine.com
+
+# Sécurisation des permissions (Dossiers en 750, Fichiers en 640)
+sudo find /var/www/mon-domaine.com -type d -exec chmod 750 {} \;
+sudo find /var/www/mon-domaine.com -type f -exec chmod 640 {} \;
+

@@ -1,0 +1,20 @@
+ssh vps-petroprog
+
+sudo apt install git
+
+cd .ssh
+
+sudo chmod 600 vps_petroprog_ed25519_202606
+
+nano config /*git clone ssh identity*/
+
+	Host github.com
+ 	HostName github.com
+ 	IdentityFile ~/.ssh/id_rsa_github
+
+
+git clone git@github.com:b1t3zzZ/Projet-P_Appro.git
+
+git pull
+
+ssh tunnel-petroprog

@@ -1,0 +1,19 @@
+Host 
+    HostName      IP
+    User          NAME
+    IdentityFile  ~/.ssh/NAME/NAME_KEY
+ 
+# VPS — connexion SSH directe via bastion
+Host NAME_VPS
+    HostName      IP_1
+    User          NAME
+    IdentityFile  ~/.ssh/NAME/NAME_KEY
+    ProxyCommand  ssh -W %h:%p bastion-sectioninf
+ 
+# VPS — tunnel local pour FileZilla/SFTP
+Host tunnel-NAME
+    HostName      IP_1
+    User          NAME
+    IdentityFile  ~/.ssh/NAME/NAME_KEY
+    ProxyCommand  ssh -W %h:%p bastion-sectioninf
+    LocalForward  2222 IP:22
