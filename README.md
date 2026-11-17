@@ -1,74 +1,123 @@
-# 📱 Boutique E-Commerce — Magasin d'Électronique
+# PhoneShop — Architecture conteneurisée (Docker / Podman)
 
-Un site web interactif de vente de téléphones portables doté d'un système de filtrage avancé, d'un panier dynamique synchronisé et d'une architecture de base de données flexible de type EAV.
-
----
-
-## 🛠️ Stack Technique
-
-* **Backend :** PHP (PDO, Sessions)
-* **Base de données :** MySQL / MariaDB
-* **Frontend :** HTML5, Tailwind CSS, JavaScript (Fetch API)
+Projet réalisé dans le cadre scolaire à l'ETML (**P_Bulle : Docker Network Toolkit**).  
+L'objectif est de conteneuriser et d'orchestrer une application web e-commerce PHP/MariaDB (**PhoneShop**) à l'aide d'un `Dockerfile` personnalisé et d'un fichier `docker-compose.yml`, en appliquant les principes d'isolation réseau, de persistance des données et d'Infrastructure as Code.
 
 ---
 
-## 📐 Architecture de la Base de Données (Modèle EAV)
+## Architecture des conteneurs
 
-Ce projet utilise le modèle **EAV (Entity-Attribute-Value)** pour gérer les caractéristiques des produits. Cette approche permet d'ajouter de nouveaux attributs (comme de nouvelles capacités de stockage ou de nouvelles catégories) de manière totalement dynamique, sans avoir à modifier la structure des tables SQL existantes.
+L'infrastructure repose sur deux services isolés orchestrés par Compose (compatible **Docker** et **Podman**) :
 
-### Structure des tables principales :
-* `t_produit` — Données principales du produit (nom, prix, quantité en stock).
-* `t_attribut` — Types de caractéristiques (ex: `Color`, `Storage`).
-* `t_valeur` — Valeurs spécifiques des caractéristiques (ex: `Noir`, `128 Go`).
-* `t_produit_attribut` — Table de liaison pour la relation plusieurs-à-plusieurs (Many-to-Many).
-* `v_storage` — Vue MySQL optimisée pour l'extraction rapide des attributs de stockage.
+| Service | Conteneur | Image / Build | Port exposé | Rôle |
+| :--- | :--- | :--- | :--- | :--- |
+| `app` | `site_web` | Build depuis `Dockerfile` (`php:7.4-apache`) | `8080:80` | Serveur Web Apache + PHP 7.4 avec extensions `mysqli`, `pdo`, `pdo_mysql` |
+| `db` | `db_magasin` | `docker.io/library/mariadb:10.11` | `3306:3306` | Base de données MariaDB (`utf8mb4_unicode_ci`) |
 
----
+### Réseau et persistance
 
-## 🚀 Fonctionnalités Clés
-
-### 1. Filtrage Intelligent et Groupement (Anti-Doublons)
-Mise en place d'une requête SQL optimisée combinant `LEFT JOIN`, `GROUP BY` et `GROUP_CONCAT`. Sur la page d'accueil, chaque modèle de téléphone s'affiche **strictement une seule fois**, même s'il possède plusieurs variantes en base de données. Les couleurs et options disponibles sont regroupées puis transformées en sélecteurs interactifs directement dans l'interface.
-
-Le système prend en compte le cumul de filtres dynamiques complexes :
-* Par marques (`iPhone`, `Samsung`, `Xiaomi`).
-* Par attributs multiples (Couleurs, Stockage) via l'opérateur SQL `IN`.
-* Par état de disponibilité des stocks.
-
-### 2. Gestion Dynamique de la Disponibilité
-L'affichage de l'état des stocks s'ajuste automatiquement selon la valeur réelle du champ `quantite` en base de données :
-* 🟩 `> 5` unités — **En stock**
-* 🟥 `Entre 1 et 4` unités — **Bientôt épuisé** (Indicateur de rareté pour inciter à l'achat)
-* 🟨 `0` unité — **Bientôt disponible**
-
-### 3. Système de Panier Sécurisé et Synchrone
-Gestion fluide du panier avec une double synchronisation entre la session PHP (`$_SESSION['cart']`) et la table de la base de données (`t_produit_panier`). La suppression d'un article a été fiabilisée en récupérant l'ID exact du panier actif (`panier_id`) de l'utilisateur connecté, évitant ainsi les requêtes imbriquées conflictuelles lors des opérations de `DELETE`.
+- **Communication inter-conteneurs** : les deux services communiquent sur un réseau bridge. L'application PHP (`www/db.php`) se connecte à la base de données via le nom de service `db` résolu par le DNS interne.
+- **Communication avec l'hôte** : l'application est accessible depuis la machine hôte sur `http://localhost:8080` et la base de données sur le port `3306`.
+- **Volumes** :
+  - `./www:/var/www/html` : montage du code source PHP dans le conteneur Web.
+  - `./init.sql:/docker-entrypoint-initdb.d/init.sql` : création automatique de la base `db_magasin_electronique`, des tables, des données de démonstration et de l'utilisateur `site_user`.
+  - `./db_data:/var/lib/mysql` : persistance des données MariaDB.
 
 ---
 
-## 📦 Installation et Lancement Local
+## Prérequis
 
-1. Clonez le dépôt :
+- **Docker** + **Docker Compose**, ou **Podman** + **Podman Compose** (`podman`, `podman-docker`, `podman-compose` sous Ubuntu 24.04)
+- **Git**
+
+---
+
+## Installation et lancement
+
+1. **Cloner le dépôt :**
+
    ```bash
-   git clone [https://github.com/b1t3zzZ/Projet-P_Appro.git](https://github.com/b1t3zzZ/Projet-P_Appro.git)
-2. Déplacez les fichiers du projet dans le répertoire de votre serveur local (par exemple, dans le dossier htdocs de XAMPP ou votre environnement Docker).
-3. Importez le fichier SQL db_magasin_electronique.sql dans votre gestionnaire de base de données (ex: phpMyAdmin).
-4. Configurez vos identifiants de connexion à la base de données dans le fichier db.php :
+   git clone https://github.com/PetroProg/PhoneShop.git
+   cd PhoneShop
+   ```
+
+2. **Créer le fichier `.env` à la racine du projet :**
+
+   ```env
+   DATABASE=db_magasin_electronique
+   PASSWORD=votre_mot_de_passe_root
+   ```
+
+3. **Construire et démarrer les conteneurs :**
+
+   Avec Podman :
    ```bash
-   $host = 'localhost'; // Utilisez 'db' si vous lancez le projet via Docker Compose
-   $dbname = 'db_magasin_electronique';
-   $user = 'votre_utilisateur';
-   $pass = 'votre_mot_de_passe';
-Lancez votre serveur et accédez au projet via votre navigateur : http://localhost/Projet-P_Appro
+   podman-compose up -d --build
+   ```
 
-## 🌐 Environnement de Production (DevOps)
-Le projet est également déployé sur un serveur de production cloud (VPS) configuré manuellement :
+   Ou avec Docker :
+   ```bash
+   docker compose up -d --build
+   ```
 
-Web Server : Nginx configuré avec isolation stricte du dossier /public pour empêcher l'accès aux scripts backend sensibles.
+4. **Accéder à l'application :**
 
-Sécurité SSH : Connexion au serveur sécurisée via une architecture à clé privée ED25519 transitant par un serveur de rebond (Bastion).
+   Ouvrir un navigateur à l'adresse :
+   ```text
+   http://localhost:8080
+   ```
 
-Administration : Déploiement des fichiers via tunnels SFTP locaux et administration de la base de données à distance via redirection de ports sécurisée sous VS Code.
+---
 
-## 📄 Licence
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](https://github.com/b1t3zzZ/Projet-P_Appro/blob/main/LICENSE) pour plus de détails.
+## Commandes utiles
+
+```bash
+# Vérifier l'état des conteneurs
+podman ps
+
+# Consulter les logs d'un conteneur
+podman logs site_web
+podman logs db_magasin
+
+# Inspecter le réseau et les adresses IP attribuées
+podman network inspect <nom_du_reseau>
+
+# Arrêter et supprimer les conteneurs
+podman-compose down
+```
+
+---
+
+## Structure du projet
+
+```text
+PhoneShop/
+├── Dockerfile                  # Image PHP 7.4 / Apache + pilotes MySQL/PDO
+├── docker-compose.yml          # Orchestration des services app et db
+├── init.sql                    # Script d'initialisation de la base MariaDB
+├── www/                        # Code source de l'application web PhoneShop
+│   ├── db.php                  # Connexion PDO vers l'hôte 'db'
+│   └── ...
+└── docs/
+    ├── rapport.md              # Rapport technique d'installation et de déploiement
+    ├── Presentation_MaltsevPetro.md
+    └── Jornal_de_Travail_MaltsevPetro.md
+```
+
+---
+
+## Application déployée (PhoneShop)
+
+PhoneShop sert d'application support pour valider le fonctionnement de la stack conteneurisée :
+
+- **Catalogue EAV** : 27 modèles de smartphones répartis en 6 marques, avec filtrage multi-attributs (couleurs, stockage) sans doublons (`GROUP_CONCAT` / `GROUP BY`).
+- **Gestion des stocks et paniers** : synchronisation entre la session PHP et MariaDB (`t_panier`, `t_produit_panier`), décrémentation du stock à la commande.
+- **Authentification et rôles** : mots de passe hachés (`password_hash` / `password_verify`) et niveaux de privilèges (`guest` à `admin`).
+
+---
+
+## Documentation et licence
+
+- Rapport technique : [docs/rapport.md](docs/rapport.md)
+- Présentation : [docs/Presentation_MaltsevPetro.md](docs/Presentation_MaltsevPetro.md)
+- Licence : [LICENSE](LICENSE) (MIT)

@@ -1,0 +1,67 @@
+name: Deploy Marp Presentation to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/Presentation_MaltsevPetro.md"
+      - "www/media/images/**"
+      - ".github/workflows/deploy-presentation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build Marp presentation
+        run: |
+          mkdir -p _site/slides _site/www/media/images
+          cp www/media/images/iPhone.png _site/www/media/images/
+          npx --yes @marp-team/marp-cli@latest docs/Presentation_MaltsevPetro.md --html --no-stdin -o _site/slides/index.html
+          touch _site/.nojekyll
+          cat << 'EOF' > _site/index.html
+          <!doctype html>
+          <html lang="fr">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=slides/">
+            <title>PhoneShop — Présentation</title>
+          </head>
+          <body>
+            <p>Redirection vers la présentation : <a href="slides/">ouvrir</a>.</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
