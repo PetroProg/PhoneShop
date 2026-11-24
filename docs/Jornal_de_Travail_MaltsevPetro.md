@@ -10,4 +10,4 @@
 | 10.11.2026 | 15:00 - 15:30 | Site et base des données fonctionnent. | |
 | 10.11.2026 | 15:30 - 17:10 | Documentation sur le projet selon le cahier des charges. | |
 | 17.11.2026 | 13:10 - 14:45 | Le travail sur la présentation. | |
-| 17.11.2026 | 15:00 - 17:10 |  | |
+| 24.11.2026 | 16:00 - 17:10 | L'ajout de la fonctionnalité du démarrage automatique pour les conteneurs. | Réussi |

@@ -81,6 +81,8 @@ Cette image utilise Apache avec PHP 7.4 et installe les extensions nécessaires 
 
 Le fichier `docker-compose.yml` décrit deux services :
 
+Dans les versions récentes de Docker Compose, la ligne `version: '3.8'` est considérée comme obsolète et n'est plus nécessaire. Elle peut être omise du fichier de configuration.
+
 - `db` : conteneur MariaDB contenant la base de données ;
 - `site` : conteneur Apache exécutant l’application PHP.
 
@@ -114,6 +116,8 @@ services:
 
 Les variables `${DATABASE}` et `${PASSWORD}` doivent être définies dans un fichier `.env`.
 
+Le dossier `db_data` se trouve localement dans le dossier du projet, sur la machine hôte. Le montage `./db_data:/var/lib/mysql` le relie au répertoire où MariaDB stocke ses fichiers. Ainsi, même si le conteneur est arrêté de force ou supprimé, les données déjà enregistrées restent dans `db_data` et sont réutilisées au prochain démarrage. La suppression ou l'altération de ce dossier sur la machine hôte peut toutefois entraîner la perte des données.
+
 ## 7. Lancement de l’application
 
 Les conteneurs peuvent être démarrés avec la commande suivante :
@@ -124,6 +128,23 @@ podman-compose up -d
 
 L’option `-d` permet d’exécuter les conteneurs en arrière-plan.
 
+## 8. Redémarrage automatique des conteneurs
+
+Pour activer le redémarrage automatique des conteneurs après une
+déconnexion ou un redémarrage de la machine, il faut exécuter les commandes
+suivantes :
+
+```bash
+systemctl --user enable --now podman-restart.service
+sudo loginctl enable-linger $USER
+```
+
+La première commande active et démarre le service utilisateur
+`podman-restart.service`. La seconde autorise les services utilisateur à
+continuer de fonctionner même lorsqu’aucune session n’est ouverte, afin que
+les conteneurs puissent redémarrer automatiquement après le démarrage du
+système.
+
 L’application Web est ensuite accessible depuis un navigateur à l’adresse :
 
 ```text
@@ -133,3 +154,5 @@ http://localhost:8080
 ## Conclusion
 
 Podman permet de déployer l’application PHP dans des conteneurs indépendants. L’architecture utilisée sépare le serveur Web et la base de données, ce qui facilite la maintenance, l’isolation et la gestion du projet.
+
+
